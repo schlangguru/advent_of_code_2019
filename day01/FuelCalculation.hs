@@ -1,3 +1,5 @@
+module FuelCalculation (calcFuel) where
+
 calcFuel :: Int -> Int
 calcFuel x
   | x <= 8      = 0
