@@ -2,10 +2,27 @@ import Computer
 import StringUtil
 import ListUtil
 
-main :: IO ()
-main = do
+import Data.List
+import Data.Maybe
+
+partOne :: IO()
+partOne = do
   input <- readFile "input.txt"
-  let cmds = setAt 1 12 $
-              setAt 2 2 $
-              map (read::String->Int) $ split ',' input
+  let cmds = parseCmds (12, 2) input
   print $ process (cmds, cmds)
+
+partTwo :: IO()
+partTwo = do
+    input <- readFile "input.txt"
+    let intCodes = [let cmds = parseCmds (i, j) input in process (cmds, cmds) | i <- [0..99], j <- [0..99]]
+    let intCode = fromJust $ find (\ic -> head ic == 19690720) intCodes
+    print intCode
+
+parseCmds :: (Int, Int) -> String -> [Int]
+parseCmds (noun, verb) input =
+  setAt 1 noun $
+  setAt 2 verb $
+  map (read::String->Int) $ split ',' input
+
+main :: IO()
+main = partTwo
