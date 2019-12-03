@@ -10,5 +10,5 @@ process (2:x:y:z:rs, l) = let result = l!!x * l!!y in process (rs, setAt z resul
 main :: IO ()
 main = do
   input <- readFile "input.txt"
-  let cmds = map (read::String->Int) $ split ',' input
+  let cmds = setAt 1 12 (setAt 2 2 (map (read::String->Int) $ split ',' input))
   print $ process (cmds, cmds)
