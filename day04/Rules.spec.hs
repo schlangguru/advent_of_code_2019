@@ -19,12 +19,13 @@ main = hspec $ do
       digitsDontDecrease 123546 `shouldBe` False
       digitsDontDecrease 654321 `shouldBe` False
 
-    it "checks double adjacent digits" $ do
-      hasDoubleDigit 123456 `shouldBe` False
-      hasDoubleDigit 124456 `shouldBe` True
-      hasDoubleDigit 111111 `shouldBe` True
+    it "checks double (or more) adjacent digits" $ do
+      hasMultiDigit 123456 `shouldBe` False
+      hasMultiDigit 124456 `shouldBe` True
+      hasMultiDigit 111111 `shouldBe` True
 
-    it "checks all rules" $ do
-      meetsRules 111111 `shouldBe` True
-      meetsRules 223450 `shouldBe` False
-      meetsRules 123789 `shouldBe` False
+    it "checks double (exact) adjacent digits" $ do
+      hasDoubleDigit 112233 `shouldBe` True
+      hasDoubleDigit 123444 `shouldBe` False
+      hasDoubleDigit 111122 `shouldBe` True
+
