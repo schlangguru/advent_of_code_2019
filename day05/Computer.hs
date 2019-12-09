@@ -88,10 +88,11 @@ decodeInstruction :: Memory -> InstPointer -> Instruction
 decodeInstruction memory instPointer =
   let
     opCode = readMemory instPointer memory
-    (operation, nmbOfArgs) = decodeOpcode opCode
+    (operation, nmbOfArgs) = decodeOpcode $ opCode `mod` 100
+    paramModes = parseParameterModes opCode nmbOfArgs
     args = case nmbOfArgs of
               0 -> []
-              _ -> map (\i -> (Position, readMemory i memory)) [instPointer + 1 .. instPointer + nmbOfArgs]
+              _ -> map (\i -> (paramModes!!(i-1), readMemory (instPointer + i) memory)) [1 .. nmbOfArgs]
   in
     Instruction {
       operation = operation,
@@ -115,7 +116,7 @@ decodeOpcode _  = (HALT, 0)
 doMath :: (Int -> Int -> Int) -> Memory -> [Argument] -> Memory
 doMath f memory args =
   let
-    (op0:op1:_) = map (\arg -> decodeArgument arg memory) args
+    (op0:op1:_) = map (\arg -> readArgumentValue arg memory) args
     result = f op0 op1
     (_, pos) = args!!2
   in
@@ -127,7 +128,17 @@ doInput (_, pos) val memory = writeMemory pos val memory
 doOutput :: Argument -> Memory -> Int
 doOutput (_, pos) memory = readMemory pos memory
 
-decodeArgument :: Argument -> Memory -> Int
-decodeArgument (paramMode, arg) memory
+parseParameterModes :: Int -> Int -> [ParameterMode]
+parseParameterModes code nmb =
+  let
+    modes = map toParameterMode $ reverse $ show $ code `div` 100
+  in modes ++ replicate (nmb - length modes) Position
+
+toParameterMode :: Char -> ParameterMode
+toParameterMode '0' = Position
+toParameterMode '1' = Immediate
+
+readArgumentValue :: Argument -> Memory -> Int
+readArgumentValue (paramMode, arg) memory
   | paramMode == Position = readMemory arg memory
   | otherwise             = arg

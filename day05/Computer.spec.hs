@@ -54,3 +54,9 @@ main = hspec $ do
       let computer = process $ createComputer intCodes []
       getMemory computer `shouldBe` expectedMem
       getOutput computer `shouldBe` expectedOut
+
+    it "supports immediate parameter mode" $ do
+      let intCodes = [1101,100,-1,4,0]
+      let expected = [1101,100,-1,4,99]
+      let result = getMemory $ process $ createComputer intCodes []
+      result `shouldBe` expected
