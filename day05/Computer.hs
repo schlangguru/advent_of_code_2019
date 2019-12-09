@@ -24,11 +24,12 @@ type Input = [Int]
 type Output = [Int]
 
 data Operation = ADD | MUL | INPUT | OUTPUT | HALT deriving (Show, Eq)
-type Argument = Int
+data ParameterMode = Position | Immediate deriving (Show, Eq)
+type Argument = (ParameterMode, Int)
 data Instruction = Instruction {
   operation :: Operation,
   arguments :: [Argument]
-}
+} deriving (Show)
 
 createComputer :: [Int] -> Input -> Computer
 createComputer memory input = Computer {
@@ -58,9 +59,9 @@ processInstruction computer@Computer{state = state, memory = memory, instPointer
     newState = decodeState operation
 
     newMemory = case operation of
-                  ADD    -> apply (+) memory args
-                  MUL    -> apply (*) memory args
-                  INPUT  -> writeMemory (args!!0) (head input) memory
+                  ADD    -> doMath (+) memory args
+                  MUL    -> doMath (*) memory args
+                  INPUT  -> doInput (args!!0) (head input) memory
                   _      -> memory
 
     newInput = case operation of
@@ -68,7 +69,7 @@ processInstruction computer@Computer{state = state, memory = memory, instPointer
                   _     -> input
 
     newOutput = case operation of
-                  OUTPUT  -> output ++ [readMemory memory (args!!0)]
+                  OUTPUT  -> output ++ [doOutput (args!!0) memory]
                   _       -> output
   in
     Computer {
@@ -86,19 +87,19 @@ decodeState _    = Running
 decodeInstruction :: Memory -> InstPointer -> Instruction
 decodeInstruction memory instPointer =
   let
-    opCode = readMemory memory instPointer
+    opCode = readMemory instPointer memory
     (operation, nmbOfArgs) = decodeOpcode opCode
     args = case nmbOfArgs of
               0 -> []
-              _ -> map (\i -> readMemory memory i) [instPointer + 1 .. instPointer + nmbOfArgs]
+              _ -> map (\i -> (Position, readMemory i memory)) [instPointer + 1 .. instPointer + nmbOfArgs]
   in
     Instruction {
       operation = operation,
       arguments = args
     }
 
-readMemory :: Memory -> InstPointer -> Int
-readMemory memory instPointer = Seq.index memory instPointer
+readMemory :: InstPointer -> Memory -> Int
+readMemory instPointer memory = Seq.index memory instPointer
 
 writeMemory :: InstPointer -> Int -> Memory -> Memory
 writeMemory instPointer elem memory = Seq.update instPointer elem memory
@@ -111,12 +112,22 @@ decodeOpcode 4  = (OUTPUT, 1)
 decodeOpcode 99 = (HALT, 0)
 decodeOpcode _  = (HALT, 0)
 
-
-apply :: (Int -> Int -> Int) -> Memory -> [Argument] -> Memory
-apply f memory args =
+doMath :: (Int -> Int -> Int) -> Memory -> [Argument] -> Memory
+doMath f memory args =
   let
-    op0 = Seq.index memory (args!!0)
-    op1 = Seq.index memory (args!!1)
+    (op0:op1:_) = map (\arg -> decodeArgument arg memory) args
     result = f op0 op1
+    (_, pos) = args!!2
   in
-    Seq.update (args!!2) result memory
+    writeMemory pos result memory
+
+doInput :: Argument -> Int -> Memory -> Memory
+doInput (_, pos) val memory = writeMemory pos val memory
+
+doOutput :: Argument -> Memory -> Int
+doOutput (_, pos) memory = readMemory pos memory
+
+decodeArgument :: Argument -> Memory -> Int
+decodeArgument (paramMode, arg) memory
+  | paramMode == Position = readMemory arg memory
+  | otherwise             = arg
